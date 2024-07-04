@@ -1,10 +1,9 @@
-#include <iostream>
-
 #include "My_Vector.h"
 
-
+#include <iostream>
 int main() {
-    std::cout << "Hello, World!" << std::endl;
-    return 0;
 
+    My_Vector<int> x;
+
+    return 0;
 }
