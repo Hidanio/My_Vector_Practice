@@ -7,12 +7,11 @@ class My_Vector {
 private:
     size_t size_;
     T *elements_;
-    size_t capacity_ = 5;
+    size_t capacity_ = 2;
 
 public:
     My_Vector() : size_(0) {
         elements_ = new T[capacity_];
-
     }
 
 //private question
@@ -24,13 +23,16 @@ public:
         }
     }
 
-    My_Vector &operator=(const T &other);
+    My_Vector<T> &operator=(const My_Vector<T> &other);
 
-    My_Vector &operator=(T &&other) noexcept;
+    My_Vector<T> &operator=(My_Vector &&other) noexcept;
 
     void push_back(const T &value);
 
-    void clear();
+    void clear() {
+        delete elements_;
+        elements_ = new T[capacity_];
+    }
 
     void pop_back();
 
@@ -53,3 +55,50 @@ public:
         elements_ = nullptr;
     }
 };
+
+
+template<typename T>
+My_Vector<T> &My_Vector<T>::operator=(My_Vector<T> &&other) noexcept {
+    if (this == &other) return *this;
+    delete[]elements_;
+
+    capacity_ = other.capacity_;
+    elements_ = other.elements_;
+    size_ = other.size_;
+
+    other.capacity_ = 0;
+    other.size_ = 0;
+    other.elements_ = nullptr;
+    return *this;
+}
+
+template<typename T>
+My_Vector<T> &My_Vector<T>::operator=(const My_Vector<T> &other) {
+    if (this == &other) return *this;
+    delete[]elements_;
+
+    capacity_ = other.capacity_;
+    elements_ = new T[capacity_];
+    size_ = other.size_;
+
+    for (auto i = 0; i < other.size_; ++i) {
+        elements_[i] = other.elements_[i];
+    }
+    return *this;
+}
+
+template<typename T>
+void My_Vector<T>::push_back(const T &value) {
+    if (size_ == capacity_) {
+        capacity_ += 9;
+
+        auto temp = new T[capacity_];
+        for (auto i = 0; i < size_; ++i) {
+            temp[i] = elements_[i];
+        }
+        delete[] elements_;
+        elements_ = temp;
+    }
+
+    elements_[size_++] = value;
+}

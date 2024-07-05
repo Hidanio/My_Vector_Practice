@@ -3,7 +3,12 @@
 #include <iostream>
 int main() {
 
-    My_Vector<int> x;
+    My_Vector<int> x{};
+
+    x.push_back(1);
+    x.push_back(2);
+    x.push_back(3);
+    x.push_back(4);
 
     return 0;
 }
