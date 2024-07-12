@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <algorithm>
 
 template<typename T>
 class My_Vector {
@@ -9,12 +10,20 @@ private:
     T *elements_;
     size_t capacity_ = 2;
 
+    void resize() {
+        capacity_ *= 2;
+        T *newElements = new T[capacity_];
+        std::copy(elements_, elements_ + size_, newElements);
+        delete[] elements_;
+        elements_ = newElements;
+    }
+
 public:
+
     My_Vector() : size_(0) {
         elements_ = new T[capacity_];
     }
 
-//private question
     My_Vector(const My_Vector &other) : size_(other.size_), capacity_(other.capacity_) {
         elements_ = new T[capacity_];
 
@@ -30,7 +39,8 @@ public:
     void push_back(const T &value);
 
     void clear() {
-        delete elements_;
+        delete[] elements_;
+        size_ = 0;
         elements_ = new T[capacity_];
     }
 
@@ -48,13 +58,66 @@ public:
         return capacity_;
     }
 
-    T operator[](const T);
+    T& at(size_t index);
+
+    const T& at(size_t index) const;
+
+    T &operator[](const size_t index) {
+        return elements_[index];
+    }
+
+    const T &operator[](const size_t index) const {
+        return elements_[index];
+    }
 
     ~My_Vector() {
         delete[] elements_;
         elements_ = nullptr;
     }
+
+    class iterator {
+    private:
+        T* ptr_;
+    public:
+        using iterator_category = std::random_access_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+        using value_type = T;
+        using pointer = T*;
+        using reference = T&;
+
+        iterator(T* ptr) : ptr_(ptr) {}
+
+        reference operator*() const { return *ptr_; }
+        pointer operator->() { return ptr_; }
+
+        iterator& operator++() { ++ptr_; return *this; }
+        iterator operator++(int) { iterator tmp = *this; ++(*this); return tmp; }
+
+        iterator& operator--() { -ptr_; return *this; }
+        iterator operator--(int) { iterator tmp = *this; -(*this); return tmp; }
+
+        iterator& operator+=(difference_type offset) { ptr_ += offset; return *this; }
+        iterator operator+(difference_type offset) const { return iterator(ptr_ + offset); }
+
+        iterator& operator-=(difference_type offset) { ptr_ -= offset; return *this; }
+        iterator operator-(difference_type offset) const { return iterator(ptr_ - offset); }
+
+        difference_type operator-(const iterator& other) const { return ptr_ - other.ptr_; }
+
+        reference operator[](difference_type offset) const { return *(ptr_ + offset); }
+
+        bool operator==(const iterator& other) const { return ptr_ == other.ptr_; }
+        bool operator!=(const iterator& other) const { return ptr_ != other.ptr_; }
+        bool operator<(const iterator& other) const { return ptr_ < other.ptr_; }
+        bool operator<=(const iterator& other) const { return ptr_ <= other.ptr_; }
+        bool operator>(const iterator& other) const { return ptr_ > other.ptr_; }
+        bool operator>=(const iterator& other) const { return ptr_ >= other.ptr_; }
+    };
+
+    iterator begin() { return iterator(elements_); }
+    iterator end() { return iterator(elements_ + size_); }
 };
+
 
 
 template<typename T>
@@ -90,7 +153,7 @@ My_Vector<T> &My_Vector<T>::operator=(const My_Vector<T> &other) {
 template<typename T>
 void My_Vector<T>::push_back(const T &value) {
     if (size_ == capacity_) {
-        capacity_ += 9;
+        resize();
 
         auto temp = new T[capacity_];
         for (auto i = 0; i < size_; ++i) {
@@ -101,4 +164,22 @@ void My_Vector<T>::push_back(const T &value) {
     }
 
     elements_[size_++] = value;
+}
+
+template<typename T>
+void My_Vector<T>::pop_back() {
+    if (size_ > 0) {
+        std::destroy_at(&elements_[size_-1]);
+        --size_;
+    }
+}
+
+template<typename T>
+T& My_Vector<T>::at(size_t index) {
+    return elements_[index];
+}
+
+template<typename T>
+const T& My_Vector<T>::at(size_t index) const {
+    return elements_[index];
 }

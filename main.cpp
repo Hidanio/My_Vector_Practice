@@ -10,5 +10,6 @@ int main() {
     x.push_back(3);
     x.push_back(4);
 
+    auto d = x[0];
     return 0;
 }
