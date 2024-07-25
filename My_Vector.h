@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <algorithm>
 #include <iostream>
+#include <memory>
+#include <new>
 
 class Printer {
 private:
@@ -43,22 +45,30 @@ private:
 
     void resize() {
         capacity_ *= 2;
-        T *newElements = new T[capacity_];
-        std::copy(elements_, elements_ + size_, newElements);
-        delete[] elements_;
+        T *newElements = static_cast<T *>(operator new(capacity_ * sizeof(T)));
+
+        for (auto i = 0; i < size_; ++i) {
+            new(newElements + i) T(std::move(elements_[i]));
+
+            // in compile time
+            if constexpr (!std::is_trivially_destructible<T>::value) {
+                std::destroy_at(elements_ + i);
+            }
+        }
+        operator delete(elements_);
         elements_ = newElements;
     }
 
 public:
     My_Vector() : size_(0) {
-        elements_ = new T[capacity_];
+        elements_ = static_cast<T *> (operator new(capacity_ * sizeof(T)));
     }
 
     My_Vector(const My_Vector &other) : size_(other.size_), capacity_(other.capacity_) {
-        elements_ = new T[capacity_];
+        elements_ = static_cast<T *> (operator new(capacity_ * sizeof(T)));
 
         for (size_t i = 0; i < size_; ++i) {
-            elements_[i] = other.elements_[i];
+            new(elements_ + i) T(other.elements_[i]);
         }
     }
 
@@ -68,10 +78,24 @@ public:
 
     void push_back(const T &value);
 
+    template<typename... Args>
+    void emplace_back(Args&&... args){
+        if(size_ == capacity_){
+            resize();
+        }
+        new(elements_ + size_) T(std::forward<Args>(args)...);
+        ++size_;
+    }
+
     void clear() {
-        delete[] elements_;
+        // on compile time
+        if constexpr (!std::is_trivially_destructible<T>::value) {
+            for (auto i = size_; i > 0; --i) {
+                std::destroy_at(elements_ + i - 1);
+            }
+        }
+
         size_ = 0;
-        elements_ = new T[capacity_];
     }
 
     void pop_back();
@@ -101,8 +125,8 @@ public:
     }
 
     ~My_Vector() {
-        delete[] elements_;
-        elements_ = nullptr;
+        clear();
+        operator delete(elements_);
     }
 
     class iterator {
@@ -184,7 +208,8 @@ template<typename T>
 My_Vector<T> &My_Vector<T>::operator=(My_Vector<T> &&other) noexcept {
     std::cout << "move operator \n";
     if (this == &other) return *this;
-    delete[]elements_;
+    clear();
+    operator delete(elements_);
 
     capacity_ = other.capacity_;
     elements_ = other.elements_;
@@ -200,14 +225,15 @@ template<typename T>
 My_Vector<T> &My_Vector<T>::operator=(const My_Vector<T> &other) {
     std::cout << "copy operator \n";
     if (this == &other) return *this;
-    delete[]elements_;
+    clear();
+    operator delete(elements_);
 
     capacity_ = other.capacity_;
-    elements_ = new T[capacity_];
+    elements_ = static_cast<T *>(operator new(capacity_ + sizeof(T)));
     size_ = other.size_;
 
     for (auto i = 0; i < other.size_; ++i) {
-        elements_[i] = other.elements_[i];
+        new(elements_ + i) T(other.elements_[i]);
     }
     return *this;
 }
@@ -216,22 +242,18 @@ template<typename T>
 void My_Vector<T>::push_back(const T &value) {
     if (size_ == capacity_) {
         resize();
-
-        auto temp = new T[capacity_];
-        for (auto i = 0; i < size_; ++i) {
-            temp[i] = elements_[i];
-        }
-        delete[] elements_;
-        elements_ = temp;
     }
 
-    elements_[size_++] = value;
+    new(elements_ + size_) T(value);
+    ++size_;
 }
 
 template<typename T>
 void My_Vector<T>::pop_back() {
     if (size_ > 0) {
-        std::destroy_at(&elements_[size_ - 1]);
+        if constexpr (!std::is_trivially_destructible<T>::value) {
+            std::destroy_at(&elements_[size_ - 1]);
+        }
         --size_;
     }
 }
